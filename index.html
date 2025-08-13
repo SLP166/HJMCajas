@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Control de Estacionamiento</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f0f4f8;
+    margin: 0;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #34495e;
+    padding: 10px 20px;
+    color: white;
+  }
+  header img {
+    height: 50px;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 22px;
+    text-align: center;
+    flex-grow: 1;
+  }
+  header .firma {
+    font-size: 14px;
+    font-style: italic;
+    white-space: nowrap;
+  }
+  .controls {
+    text-align: center;
+    margin: 10px 0;
+  }
+  .controls label {
+    font-size: 16px;
+    margin-left: 8px;
+    color: #34495e;
+    cursor: pointer;
+  }
+  table {
+    width: 90%;
+    margin: 0 auto 20px;
+    border-collapse: collapse;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  th, td {
+    padding: 12px 20px;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+  }
+  th {
+    background-color: #34495e;
+    color: white;
+  }
+  tr.ocupado {
+    background-color: #f8d7da;
+    color: #721c24;
+    font-weight: bold;
+  }
+  tr.vacio {
+    background-color: #d4edda;
+    color: #155724;
+  }
+  caption {
+    font-size: 1.1em;
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+  #btnActualizar {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #34495e;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  #btnActualizar:hover {
+    background-color: #2c3e50;
+  }
+  tbody {
+    display: block;
+    max-height: 500px;  
+    overflow-y: auto;
+  }
+  thead, tbody tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="https://hjmintl.com/web/storage/configs/logo.png" alt="Logo">
+  <h1>HJM Cajas</h1>
+  <div class="firma">By Santos LP</div>
+</header>
+
+<div class="controls">
+  <button id="btnActualizar">Actualizar Ahora</button>
+  <input type="checkbox" id="autoScroll" checked />
+  <label for="autoScroll">Scroll automático</label>
+</div>
+
+<table id="tablaEstacionamiento">
+  <caption>Última actualización: <span id="lastUpdate">-</span></caption>
+  <thead>
+    <tr>
+      <th>Localización</th>
+      <th>Estado</th>
+      <th>Equipos</th>
+      <th>Condición</th>
+      <th>Fecha de ingreso</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  const listaEspacios = [
+    "n01","n02","n03","n04","n05","n06","n07","n08","n09","n10",
+    "n11","n12","n13","n14","n15","n16","n17","n18","n19","n20",
+    "n21","n22","n23","n24","n25","n26","n27","n28","n29","n30",
+    "n31","n32","n33","n34","n35",
+    "s01","s02","s03","s04","s05","s06","s07","s08","s09","s10",
+    "s11","s12","s13","s14","s15","s16","s17","s18","s19","s20",
+    "s21","s22","s23","s24","s25","s26","s27","s28","s29","s30",
+    "s31","s32","s33","s34","s35","s36","s37","s38","s39","s40",
+    "s41","s42","s43","s44","s45","s46"
+  ];
+
+  const tbody = document.querySelector('#tablaEstacionamiento tbody');
+  const checkboxAutoScroll = document.getElementById('autoScroll');
+  const btnActualizar = document.getElementById('btnActualizar');
+
+  let userScrolling = false;
+  let scrollTimeout = null;
+  let scrollDirectionDown = true;
+  let animationFrameId = null;
+
+  tbody.addEventListener('scroll', () => {
+    if (checkboxAutoScroll.checked) {
+      userScrolling = true;
+      if(scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => { userScrolling = false; }, 3000);
+    }
+  });
+
+  function autoScroll() {
+    if (!checkboxAutoScroll.checked || userScrolling) {
+      animationFrameId = requestAnimationFrame(autoScroll);
+      return;
+    }
+    if (tbody.scrollHeight <= tbody.clientHeight) {
+      animationFrameId = requestAnimationFrame(autoScroll);
+      return;
+    }
+    const scrollStep = 400;
+    if (scrollDirectionDown) {
+      tbody.scrollTop += scrollStep;
+      if (tbody.scrollTop + tbody.clientHeight >= tbody.scrollHeight) scrollDirectionDown = false;
+    } else {
+      tbody.scrollTop -= scrollStep;
+      if (tbody.scrollTop <= 0) scrollDirectionDown = true;
+    }
+    animationFrameId = requestAnimationFrame(autoScroll);
+  }
+
+  async function obtenerUrlCSV() {
+    try {
+      const response = await fetch('gary.dat');
+      const base64Url = await response.text();
+      return atob(base64Url.trim());
+    } catch(e) {
+      console.error('Error leyendo gary.dat:', e);
+      return null;
+    }
+  }
+
+  async function cargarDatos() {
+    try {
+      const urlCSV = await obtenerUrlCSV();
+      if (!urlCSV) return;
+
+      const response = await fetch(urlCSV);
+      const csvText = await response.text();
+      const lines = csvText.trim().split('\n');
+      if (lines.length < 2) return;
+
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const idxFecha = headers.findIndex(h => h.includes('fecha y hora'));
+      const idxEstado = headers.findIndex(h => h === 'estado');
+      const idxLocalizacion = headers.findIndex(h => h.includes('localizaci'));
+      const idxEquipos = headers.findIndex(h => h.includes('equipos'));
+      const idxCondicion = headers.findIndex(h => h === 'condición' || h === 'condicion');
+
+      if ([idxFecha, idxEstado, idxLocalizacion, idxEquipos, idxCondicion].some(i => i === -1)) return;
+
+      let registros = [];
+      for(let i=1; i<lines.length; i++){
+        const row = lines[i].split(',');
+        if(row.length < headers.length) continue;
+        const fechaStr = row[idxFecha].trim();
+        const estado = row[idxEstado].trim().toLowerCase();
+        const localizacion = row[idxLocalizacion].trim();
+        const equipos = row[idxEquipos].trim();
+        const condicion = row[idxCondicion].trim();
+        const fechaHora = new Date(fechaStr);
+        if(isNaN(fechaHora)) continue;
+        registros.push({fecha: fechaHora, estado, localizacion, equipos, condicion});
+      }
+
+      registros.sort((a,b) => a.fecha - b.fecha);
+      const ultimoEstadoInfo = new Map();
+
+      registros.forEach(r => {
+        if(r.estado === 'entrada'){
+          ultimoEstadoInfo.set(r.localizacion, {
+            estado: r.estado,
+            equipos: r.equipos,
+            condicion: r.condicion,
+            fechaIngreso: r.fecha
+          });
+        } else {
+          ultimoEstadoInfo.set(r.localizacion, {
+            estado: r.estado,
+            equipos: '',
+            condicion: '',
+            fechaIngreso: null
+          });
+        }
+      });
+
+      tbody.innerHTML = '';
+      listaEspacios.forEach(espacio => {
+        let estadoFinal = 'Vacío';
+        let equiposFinal = '';
+        let condicionFinal = '';
+        let fechaIngresoFinal = '';
+        if(ultimoEstadoInfo.has(espacio)) {
+          const info = ultimoEstadoInfo.get(espacio);
+          if(info.estado === 'entrada'){
+            estadoFinal = 'Ocupado';
+            equiposFinal = info.equipos;
+            condicionFinal = info.condicion;
+            fechaIngresoFinal = info.fechaIngreso ? info.fechaIngreso.toLocaleString() : '';
+          }
+        }
+        const tr = document.createElement('tr');
+        tr.className = estadoFinal === 'Ocupado' ? 'ocupado' : 'vacio';
+        tr.innerHTML = `
+          <td>${espacio}</td>
+          <td>${estadoFinal}</td>
+          <td>${equiposFinal}</td>
+          <td>${condicionFinal}</td>
+          <td>${fechaIngresoFinal}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+    } catch (e) {
+      console.error('Error cargando datos:', e);
+    }
+  }
+
+  btnActualizar.addEventListener('click', cargarDatos);
+  checkboxAutoScroll.addEventListener('change', () => {
+    if (checkboxAutoScroll.checked) {
+      if (!animationFrameId) autoScroll();
+    } else {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+    }
+  });
+
+  autoScroll();
+  cargarDatos();
+  setInterval(cargarDatos, 3000);
+</script>
+
+</body>
+</html>
