@@ -94,6 +94,46 @@
     width: 100%;
     table-layout: fixed;
   }
+
+  /* Media Query para dispositivos móviles */
+  @media (max-width: 600px) {
+    header {
+      flex-direction: column;
+      text-align: center;
+      padding: 10px;
+    }
+    header img {
+      height: 40px;
+      margin-bottom: 5px;
+    }
+    header h1 {
+      font-size: 18px;
+      flex-grow: 0;
+      margin-bottom: 5px;
+    }
+    header .firma {
+      font-size: 12px;
+      white-space: normal;
+    }
+    table {
+      width: 100%;
+      font-size: 12px;
+    }
+    th, td {
+      padding: 8px 6px;
+    }
+    #btnActualizar {
+      width: 90%;
+      font-size: 14px;
+      padding: 8px 0;
+    }
+    .controls label {
+      font-size: 14px;
+    }
+    tbody {
+      max-height: 300px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -291,3 +331,4 @@
 
 </body>
 </html>
+
