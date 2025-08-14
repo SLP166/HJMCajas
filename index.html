@@ -51,35 +51,21 @@
 
   /* Ajustes para pantallas pequeñas */
   @media (max-width: 768px) {
-    header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 6px;
-      padding: 8px 12px;
-    }
-    header h1 {
-      font-size: 16px;
-      text-align: left;
-    }
-    .toolbar {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 6px;
-      padding: 8px;
-    }
-    .toolbar button, .toolbar select, .toolbar label {
-      font-size: 13px;
-      width: 100%;
-    }
-    table {
-      font-size: 12px;
-    }
-    thead th, tbody td {
-      padding: 6px;
-    }
-    tbody {
-      max-height: 300px;
-    }
+    header { flex-direction: column; align-items: flex-start; gap: 6px; padding: 8px 12px; }
+    header h1 { font-size: 16px; text-align: left; }
+    .toolbar { flex-direction: column; align-items: stretch; gap: 6px; padding: 8px; }
+    .toolbar button, .toolbar select, .toolbar label { font-size: 13px; width: 100%; }
+    table { font-size: 12px; }
+    thead th, tbody td { padding: 6px; }
+    tbody { max-height: 300px; }
+    .status { font-size: 11px; padding: 2px 6px; }
+  }
+  @media (max-width: 600px) {
+    header .firma { font-size: 10px; }
+    header .estadoRed { font-size: 10px; }
+    table { font-size: 11px; }
+    thead th, tbody td { padding: 4px; }
+    .status { font-size: 10px; padding: 1px 4px; }
   }
 </style>
 </head>
@@ -156,18 +142,15 @@ let userScrolling = false;
 let scrollTimeout = null;
 let timerId = null;
 
-// Estado en memoria
 const ultimoEstadoInfo = new Map();
 const trMap = new Map();
 const ultimoRegistroMap = new Map();
 
-// Control de ingestión incremental y condicional
 let ultimaLineaProcesada = 0;
 let lastETag = null;
 let lastModified = null;
 let backoffMs = 0;
 
-// IndexedDB
 const DB_NAME = 'hjm-parking';
 const DB_STORE = 'cache';
 let db = null;
@@ -295,42 +278,37 @@ async function cargarDatos(){
     const cacheEstado=await dbGet('ultimoEstadoInfo');
     const cacheUltimo=await dbGet('ultimoRegistroMap');
     const cacheLinea=await dbGet('ultimaLineaProcesada');
-    const cacheETag=await dbGet('lastETag');
-    const cacheLM=await dbGet('lastModified');
-    if(cacheEstado&&cacheUltimo){
-      ultimoEstadoInfo.clear(); for(const [k,v] of cacheEstado) ultimoEstadoInfo.set(k,v);
-      ultimoRegistroMap.clear(); for(const [k,v] of cacheUltimo) ultimoRegistroMap.set(k,v);
-      ultimaLineaProcesada=cacheLinea||0; lastETag=cacheETag||lastETag; lastModified=cacheLM||lastModified;
-      render(); el.lastUpdate.textContent=new Date().toLocaleTimeString()+' (offline)'; showMsg('Mostrando datos desde caché (modo offline o error de red).'); 
-    } else { showMsg('No se pudo actualizar ni cargar caché. Verifique la conexión y el CSV.'); }
-    backoffMs=Math.min(60000, backoffMs?backoffMs*2:2000);
-    el.estadoRed.textContent='OFFLINE'; el.estadoRed.style.color='orange';
+    if(cacheEstado && cacheUltimo){ ultimoEstadoInfo.clear(); cacheEstado.forEach(([k,v])=>ultimoEstadoInfo.set(k,v));
+      ultimoRegistroMap.clear(); cacheUltimo.forEach(([k,v])=>ultimoRegistroMap.set(k,v));
+      ultimaLineaProcesada=cacheLinea||0; render(); showMsg('Modo offline / datos cacheados'); el.estadoRed.textContent='OFFLINE'; el.estadoRed.style.color='orange'; }
+    else { showMsg('Error cargando datos'); el.estadoRed.textContent='OFFLINE'; el.estadoRed.style.color='red'; }
+    backoffMs=Math.min((backoffMs||1000)*2,60000);
   }
 }
 
 /***************************************************
+ * Botones y temporizador
+ ***************************************************/
+el.btnActualizar.addEventListener('click',()=>{ cargarDatos(); });
+el.autoScroll.addEventListener('change',()=>{ if(el.autoScroll.checked && !rafId) autoScroll(); });
+el.modoOffline.addEventListener('change',()=>{ if(el.modoOffline.checked) showMsg('Modo offline activo'); else hideMsg(); });
+el.freq.addEventListener('change',()=>{ if(timerId) clearInterval(timerId); timerId=setInterval(cargarDatos,parseInt(el.freq.value)); });
+
+/***************************************************
  * Inicialización
  ***************************************************/
-async function init(){
-  try{
-    const cacheEstado=await dbGet('ultimoEstadoInfo');
-    const cacheUltimo=await dbGet('ultimoRegistroMap');
-    const cacheLinea=await dbGet('ultimaLineaProcesada');
-    const cacheETag=await dbGet('lastETag');
-    const cacheLM=await dbGet('lastModified');
-    if(cacheEstado&&cacheUltimo){ 
-      for(const [k,v] of cacheEstado) ultimoEstadoInfo.set(k,v);
-      for(const [k,v] of cacheUltimo) ultimoRegistroMap.set(k,v);
-      ultimaLineaProcesada=cacheLinea||0; lastETag=cacheETag||lastETag; lastModified=cacheLM||lastModified;
-      render();
-    }
-  } catch(e){ console.warn('No se cargó caché inicial',e); }
-  el.btnActualizar.addEventListener('click',()=>{ cargarDatos(); });
-  function scheduleNext(){ timerId=setTimeout(async()=>{ await cargarDatos(); scheduleNext(); }, parseInt(el.freq.value)+backoffMs); }
-  scheduleNext();
+(async function init(){
+  const dbEstado=await dbGet('ultimoEstadoInfo'); if(dbEstado){ dbEstado.forEach(([k,v])=>ultimoEstadoInfo.set(k,v)); }
+  const dbUltimo=await dbGet('ultimoRegistroMap'); if(dbUltimo){ dbUltimo.forEach(([k,v])=>ultimoRegistroMap.set(k,v)); }
+  const dbLinea=await dbGet('ultimaLineaProcesada'); if(dbLinea) ultimaLineaProcesada=dbLinea;
+  const dbETag=await dbGet('lastETag'); if(dbETag) lastETag=dbETag;
+  const dbLM=await dbGet('lastModified'); if(dbLM) lastModified=dbLM;
+  render();
   autoScroll();
-}
-init();
+  const interval=parseInt(el.freq.value)||5000;
+  timerId=setInterval(cargarDatos,interval);
+  cargarDatos();
+})();
 </script>
 </body>
 </html>
