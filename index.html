@@ -3,332 +3,316 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Control de Estacionamiento</title>
+<title>Control de Estacionamiento HJM</title>
 <style>
-  body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f0f4f8;
-    margin: 0;
+  :root {
+    --bg: #f0f4f8;
+    --ink: #1f2937;
+    --brand: #34495e;
+    --brand-ink: #fff;
+    --warn: #f59e0b;
+    --ok-bg: #d4edda;
+    --ok-ink: #155724;
+    --bad-bg: #f8d7da;
+    --bad-ink: #721c24;
   }
-  header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #34495e;
-    padding: 10px 20px;
-    color: white;
-  }
-  header img {
-    height: 50px;
-  }
-  header h1 {
-    margin: 0;
-    font-size: 22px;
-    text-align: center;
-    flex-grow: 1;
-  }
-  header .firma {
-    font-size: 14px;
-    font-style: italic;
-    white-space: nowrap;
-  }
-  .controls {
-    text-align: center;
-    margin: 10px 0;
-  }
-  .controls label {
-    font-size: 16px;
-    margin-left: 8px;
-    color: #34495e;
-    cursor: pointer;
-  }
-  table {
-    width: 90%;
-    margin: 0 auto 20px;
-    border-collapse: collapse;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  }
-  th, td {
-    padding: 12px 20px;
-    border-bottom: 1px solid #ddd;
-    text-align: center;
-  }
-  th {
-    background-color: #34495e;
-    color: white;
-  }
-  tr.ocupado {
-    background-color: #f8d7da;
-    color: #721c24;
-    font-weight: bold;
-  }
-  tr.vacio {
-    background-color: #d4edda;
-    color: #155724;
-  }
-  caption {
-    font-size: 1.1em;
-    margin-bottom: 8px;
-    font-weight: bold;
-  }
-  #btnActualizar {
-    padding: 10px 20px;
-    font-size: 16px;
-    background-color: #34495e;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  #btnActualizar:hover {
-    background-color: #2c3e50;
-  }
-  tbody {
-    display: block;
-    max-height: 500px;  
-    overflow-y: auto;
-  }
-  thead, tbody tr {
-    display: table;
-    width: 100%;
-    table-layout: fixed;
-  }
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; color: var(--ink); }
+  header { display: flex; gap: 12px; justify-content: space-between; align-items: center; background: var(--brand); padding: 10px 16px; color: var(--brand-ink); position: sticky; top: 0; z-index: 10; }
+  header img { height: 44px; }
+  header h1 { margin: 0; font-size: 20px; letter-spacing: .5px; flex: 1; text-align: center; }
+  header .firma { font-size: 12px; font-style: italic; white-space: nowrap; opacity: .9; }
+  header .estadoRed { font-size: 12px; font-weight: bold; }
 
-  /* Media Query para dispositivos móviles */
-  @media (max-width: 600px) {
-    header {
-      flex-direction: column;
-      text-align: center;
-      padding: 10px;
-    }
-    header img {
-      height: 40px;
-      margin-bottom: 5px;
-    }
-    header h1 {
-      font-size: 18px;
-      flex-grow: 0;
-      margin-bottom: 5px;
-    }
-    header .firma {
-      font-size: 12px;
-      white-space: normal;
-    }
-    table {
-      width: 100%;
-      font-size: 12px;
-    }
-    th, td {
-      padding: 8px 6px;
-    }
-    #btnActualizar {
-      width: 90%;
-      font-size: 14px;
-      padding: 8px 0;
-    }
-    .controls label {
-      font-size: 14px;
-    }
-    tbody {
-      max-height: 300px;
-    }
-  }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; padding: 10px; background: #fff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 64px; z-index: 9; }
+  .toolbar button, .toolbar select, .toolbar label { font-size: 14px; }
+  .btn { padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; background: var(--brand); color: var(--brand-ink); box-shadow: 0 2px 4px rgba(0,0,0,.08); transition: transform .05s ease, filter .2s ease; }
+  .btn:hover { filter: brightness(1.05); }
+  .btn:active { transform: translateY(1px); }
+  .muted { color: #6b7280; font-size: 12px; }
+
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 10px; }
+
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+  caption { font-weight: 600; padding: 8px; background: #fff; }
+  thead th { position: sticky; top: calc(64px + 48px); background: var(--brand); color: var(--brand-ink); padding: 10px; text-align: center; }
+  tbody { display: block; max-height: 520px; overflow: auto; }
+  thead, tbody tr { display: table; width: 100%; table-layout: fixed; }
+  th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px; }
+  tr.ocupado { background-color: var(--bad-bg); color: var(--bad-ink); font-weight: 600; }
+  tr.vacio { background-color: var(--ok-bg); color: var(--ok-ink); }
+
+  .status { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+  .status.ok { background: #dcfce7; }
+  .status.bad { background: #fee2e2; }
+
+  .notice { display:flex; align-items:center; gap:8px; margin:8px 0; font-size: 13px; }
+  .hidden { display: none !important; }
 </style>
 </head>
 <body>
-
 <header>
   <img src="https://hjmintl.com/web/storage/configs/logo.png" alt="Logo">
   <h1>HJM Cajas</h1>
   <div class="firma">By Santos LP</div>
+  <div class="estadoRed" id="estadoRed">ONLINE</div>
 </header>
 
-<div class="controls">
-  <button id="btnActualizar">Actualizar Ahora</button>
-  <input type="checkbox" id="autoScroll" checked />
-  <label for="autoScroll">Scroll automático</label>
+<div class="toolbar">
+  <button class="btn" id="btnActualizar">Actualizar</button>
+  <label><input type="checkbox" id="autoScroll" checked /> Scroll automático</label>
+  <label><input type="checkbox" id="modoOffline" /> Modo offline</label>
+  <select id="freq">
+    <option value="5000">Cada 5 s</option>
+    <option value="10000">Cada 10 s</option>
+    <option value="30000">Cada 30 s</option>
+    <option value="60000">Cada 60 s</option>
+  </select>
+  <span class="muted" id="etagInfo"></span>
 </div>
 
-<table id="tablaEstacionamiento">
-  <caption>Última actualización: <span id="lastUpdate">-</span></caption>
-  <thead>
-    <tr>
-      <th>Localización</th>
-      <th>Estado</th>
-      <th>Equipos</th>
-      <th>Condición</th>
-      <th>Fecha de ingreso</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+<div class="wrap">
+  <div class="notice" id="msg"></div>
+
+  <table id="tablaEstacionamiento">
+    <caption>Última actualización: <span id="lastUpdate">-</span></caption>
+    <thead>
+      <tr>
+        <th>Localización</th>
+        <th>Estado</th>
+        <th>Equipos</th>
+        <th>Condición</th>
+        <th>Fecha de ingreso</th>
+        <th>Último registro</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
 <script>
-  const listaEspacios = [
-    "n01","n02","n03","n04","n05","n06","n07","n08","n09","n10",
-    "n11","n12","n13","n14","n15","n16","n17","n18","n19","n20",
-    "n21","n22","n23","n24","n25","n26","n27","n28","n29","n30",
-    "n31","n32","n33","n34","n35",
-    "s01","s02","s03","s04","s05","s06","s07","s08","s09","s10",
-    "s11","s12","s13","s14","s15","s16","s17","s18","s19","s20",
-    "s21","s22","s23","s24","s25","s26","s27","s28","s29","s30",
-    "s31","s32","s33","s34","s35","s36","s37","s38","s39","s40",
-    "s41","s42","s43","s44","s45","s46"
-  ];
+/***************************************************
+ * Config + utilidades
+ ***************************************************/
+const listaEspacios = [
+  "n01","n02","n03","n04","n05","n06","n07","n08","n09","n10",
+  "n11","n12","n13","n14","n15","n16","n17","n18","n19","n20",
+  "n21","n22","n23","n24","n25","n26","n27","n28","n29","n30",
+  "n31","n32","n33","n34","n35",
+  "s01","s02","s03","s04","s05","s06","s07","s08","s09","s10",
+  "s11","s12","s13","s14","s15","s16","s17","s18","s19","s20",
+  "s21","s22","s23","s24","s25","s26","s27","s28","s29","s30",
+  "s31","s32","s33","s34","s35","s36","s37","s38","s39","s40",
+  "s41","s42","s43","s44","s45","s46"
+];
 
-  const tbody = document.querySelector('#tablaEstacionamiento tbody');
-  const checkboxAutoScroll = document.getElementById('autoScroll');
-  const btnActualizar = document.getElementById('btnActualizar');
+const el = {
+  tbody: document.querySelector('#tablaEstacionamiento tbody'),
+  btnActualizar: document.getElementById('btnActualizar'),
+  autoScroll: document.getElementById('autoScroll'),
+  modoOffline: document.getElementById('modoOffline'),
+  freq: document.getElementById('freq'),
+  lastUpdate: document.getElementById('lastUpdate'),
+  msg: document.getElementById('msg'),
+  etagInfo: document.getElementById('etagInfo'),
+  estadoRed: document.getElementById('estadoRed')
+};
 
-  let userScrolling = false;
-  let scrollTimeout = null;
-  let scrollDirectionDown = true;
-  let animationFrameId = null;
+let rafId = null;
+let userScrolling = false;
+let scrollTimeout = null;
+let timerId = null;
 
-  tbody.addEventListener('scroll', () => {
-    if (checkboxAutoScroll.checked) {
-      userScrolling = true;
-      if(scrollTimeout) clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => { userScrolling = false; }, 3000);
-    }
+// Estado en memoria
+const ultimoEstadoInfo = new Map();
+const trMap = new Map();
+const ultimoRegistroMap = new Map();
+
+// Control de ingestión incremental y condicional
+let ultimaLineaProcesada = 0;
+let lastETag = null;
+let lastModified = null;
+let backoffMs = 0;
+
+// IndexedDB
+const DB_NAME = 'hjm-parking';
+const DB_STORE = 'cache';
+let db = null;
+
+function showMsg(text){ el.msg.classList.remove('hidden'); el.msg.textContent = text; }
+function hideMsg(){ el.msg.classList.add('hidden'); }
+
+async function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(DB_NAME,1);
+    req.onupgradeneeded=(e)=>{ if(!e.target.result.objectStoreNames.contains(DB_STORE)) e.target.result.createObjectStore(DB_STORE); };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
   });
+}
+async function dbSet(key,value){ if(!db) db=await openDB(); return new Promise((res,rej)=>{ const tx=db.transaction(DB_STORE,'readwrite'); tx.objectStore(DB_STORE).put(value,key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+async function dbGet(key){ if(!db) db=await openDB(); return new Promise((res,rej)=>{ const tx=db.transaction(DB_STORE,'readonly'); const req=tx.objectStore(DB_STORE).get(key); req.onsuccess=()=>res(req.result); req.onerror=()=>rej(req.error); }); }
 
-  function autoScroll() {
-    if (!checkboxAutoScroll.checked || userScrolling) {
-      animationFrameId = requestAnimationFrame(autoScroll);
-      return;
-    }
-    if (tbody.scrollHeight <= tbody.clientHeight) {
-      animationFrameId = requestAnimationFrame(autoScroll);
-      return;
-    }
-    const scrollStep = 400;
-    if (scrollDirectionDown) {
-      tbody.scrollTop += scrollStep;
-      if (tbody.scrollTop + tbody.clientHeight >= tbody.scrollHeight) scrollDirectionDown = false;
-    } else {
-      tbody.scrollTop -= scrollStep;
-      if (tbody.scrollTop <= 0) scrollDirectionDown = true;
-    }
-    animationFrameId = requestAnimationFrame(autoScroll);
+/***************************************************
+ * Scroll automático
+ ***************************************************/
+function autoScroll(){
+  if(!el.autoScroll.checked || userScrolling || el.tbody.scrollHeight<=el.tbody.clientHeight){ rafId=requestAnimationFrame(autoScroll); return; }
+  const step=Math.max(1,Math.floor(el.tbody.clientHeight*0.25));
+  if(el.tbody.scrollTop+el.tbody.clientHeight>=el.tbody.scrollHeight-2){ el.tbody.scrollTop=0; } 
+  else { el.tbody.scrollTop+=step; }
+  rafId=requestAnimationFrame(autoScroll);
+}
+el.tbody.addEventListener('scroll',()=>{ if(el.autoScroll.checked){ userScrolling=true; if(scrollTimeout) clearTimeout(scrollTimeout); scrollTimeout=setTimeout(()=>{userScrolling=false;},1500); }});
+
+/***************************************************
+ * Fetch condicional con ETag/Last-Modified + offline
+ ***************************************************/
+async function fetchCSV(url){
+  if(el.modoOffline.checked) throw new Error('FORCED_OFFLINE');
+  const headers={};
+  if(lastETag) headers['If-None-Match']=lastETag;
+  if(lastModified) headers['If-Modified-Since']=lastModified;
+  const resp=await fetch(url,{headers,cache:'no-store'});
+  if(resp.status===304) return { text:null, etag:lastETag, lastModified };
+  if(!resp.ok) throw new Error('HTTP_'+resp.status);
+  const etag=resp.headers.get('ETag');
+  const lm=resp.headers.get('Last-Modified');
+  const text=await resp.text();
+  return { text, etag, lastModified: lm };
+}
+
+function parseCSV(text){ 
+  const lines=text.split(/\r?\n/).filter(Boolean);
+  if(lines.length===0) return { headers:[], rows:[] };
+  const headers=lines[0].split(',').map(h=>h.trim());
+  const rows=[];
+  for(let i=1;i<lines.length;i++){ const cols=lines[i].split(','); while(cols.length<headers.length) cols.push(''); rows.push(cols.map(c=>c.trim())); }
+  return { headers, rows };
+}
+
+function resolveIndices(headers){
+  const lower=headers.map(h=>h.toLowerCase());
+  const idxFecha=lower.findIndex(h=>h.includes('fecha y hora'));
+  const idxEstado=lower.findIndex(h=>h==='estado');
+  const idxLocal=lower.findIndex(h=>h.includes('localizaci'));
+  const idxEquip=lower.findIndex(h=>h.includes('equipos'));
+  const idxCond=lower.findIndex(h=>h==='condición'||h==='condicion');
+  if([idxFecha,idxEstado,idxLocal,idxEquip,idxCond].some(i=>i===-1)) throw new Error('SCHEMA_MISMATCH');
+  return { idxFecha, idxEstado, idxLocal, idxEquip, idxCond };
+}
+
+function applyRows(headers,rows){
+  const { idxFecha,idxEstado,idxLocal,idxEquip,idxCond }=resolveIndices(headers);
+  for(let i=Math.max(0,ultimaLineaProcesada);i<rows.length;i++){
+    const row=rows[i];
+    const loc=(row[idxLocal]||'').trim();
+    const estado=(row[idxEstado]||'').trim().toLowerCase();
+    const equipos=(row[idxEquip]||'').trim();
+    const condicion=(row[idxCond]||'').trim();
+    const fecha=new Date((row[idxFecha]||'').trim());
+    if(!loc||Number.isNaN(fecha.getTime())) continue;
+    ultimoEstadoInfo.set(loc,{estado,equipos,condicion,fechaIngreso:fecha});
+    if(estado==='entrada') ultimoRegistroMap.set(loc,`${equipos} | ${condicion} | ${fecha.toLocaleString()}`);
   }
+  ultimaLineaProcesada=rows.length;
+}
 
-  async function obtenerUrlCSV() {
-    try {
-      const response = await fetch('gary.dat');
-      const base64Url = await response.text();
-      return atob(base64Url.trim());
-    } catch(e) {
-      console.error('Error leyendo gary.dat:', e);
-      return null;
-    }
-  }
-
-  async function cargarDatos() {
-    try {
-      const urlCSV = await obtenerUrlCSV();
-      if (!urlCSV) return;
-
-      const response = await fetch(urlCSV);
-      const csvText = await response.text();
-      const lines = csvText.trim().split('\n');
-      if (lines.length < 2) return;
-
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      const idxFecha = headers.findIndex(h => h.includes('fecha y hora'));
-      const idxEstado = headers.findIndex(h => h === 'estado');
-      const idxLocalizacion = headers.findIndex(h => h.includes('localizaci'));
-      const idxEquipos = headers.findIndex(h => h.includes('equipos'));
-      const idxCondicion = headers.findIndex(h => h === 'condición' || h === 'condicion');
-
-      if ([idxFecha, idxEstado, idxLocalizacion, idxEquipos, idxCondicion].some(i => i === -1)) return;
-
-      let registros = [];
-      for(let i=1; i<lines.length; i++){
-        const row = lines[i].split(',');
-        if(row.length < headers.length) continue;
-        const fechaStr = row[idxFecha].trim();
-        const estado = row[idxEstado].trim().toLowerCase();
-        const localizacion = row[idxLocalizacion].trim();
-        const equipos = row[idxEquipos].trim();
-        const condicion = row[idxCondicion].trim();
-        const fechaHora = new Date(fechaStr);
-        if(isNaN(fechaHora)) continue;
-        registros.push({fecha: fechaHora, estado, localizacion, equipos, condicion});
-      }
-
-      registros.sort((a,b) => a.fecha - b.fecha);
-      const ultimoEstadoInfo = new Map();
-
-      registros.forEach(r => {
-        if(r.estado === 'entrada'){
-          ultimoEstadoInfo.set(r.localizacion, {
-            estado: r.estado,
-            equipos: r.equipos,
-            condicion: r.condicion,
-            fechaIngreso: r.fecha
-          });
-        } else {
-          ultimoEstadoInfo.set(r.localizacion, {
-            estado: r.estado,
-            equipos: '',
-            condicion: '',
-            fechaIngreso: null
-          });
-        }
-      });
-
-      tbody.innerHTML = '';
-      listaEspacios.forEach(espacio => {
-        let estadoFinal = 'Vacío';
-        let equiposFinal = '';
-        let condicionFinal = '';
-        let fechaIngresoFinal = '';
-        if(ultimoEstadoInfo.has(espacio)) {
-          const info = ultimoEstadoInfo.get(espacio);
-          if(info.estado === 'entrada'){
-            estadoFinal = 'Ocupado';
-            equiposFinal = info.equipos;
-            condicionFinal = info.condicion;
-            fechaIngresoFinal = info.fechaIngreso ? info.fechaIngreso.toLocaleString() : '';
-          }
-        }
-        const tr = document.createElement('tr');
-        tr.className = estadoFinal === 'Ocupado' ? 'ocupado' : 'vacio';
-        tr.innerHTML = `
-          <td>${espacio}</td>
-          <td>${estadoFinal}</td>
-          <td>${equiposFinal}</td>
-          <td>${condicionFinal}</td>
-          <td>${fechaIngresoFinal}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
-    } catch (e) {
-      console.error('Error cargando datos:', e);
-    }
-  }
-
-  btnActualizar.addEventListener('click', cargarDatos);
-  checkboxAutoScroll.addEventListener('change', () => {
-    if (checkboxAutoScroll.checked) {
-      if (!animationFrameId) autoScroll();
-    } else {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
-    }
+function render(){
+  listaEspacios.forEach(espacio=>{
+    const info=ultimoEstadoInfo.get(espacio)||{estado:'salida',equipos:'',condicion:'',fechaIngreso:null};
+    const ocupado=info.estado==='entrada';
+    let tr=trMap.get(espacio);
+    if(!tr){ tr=document.createElement('tr'); trMap.set(espacio,tr); el.tbody.appendChild(tr); }
+    const cls=ocupado?'ocupado':'vacio'; if(tr.className!==cls) tr.className=cls;
+    const fechaTxt=(ocupado&&info.fechaIngreso)?info.fechaIngreso.toLocaleString():'';
+    const ultimoTxt=ultimoRegistroMap.get(espacio)||'';
+    tr.innerHTML=`<td>${espacio}</td>
+      <td><span class="status ${ocupado?'bad':'ok'}">${ocupado?'Ocupado':'Vacío'}</span></td>
+      <td>${ocupado?(info.equipos||''):""}</td>
+      <td>${ocupado?(info.condicion||''):""}</td>
+      <td>${fechaTxt}</td>
+      <td>${ultimoTxt}</td>`;
   });
+}
 
-  autoScroll();
-  cargarDatos();
-  setInterval(cargarDatos, 3000);
+/***************************************************
+ * Carga datos + backoff + cache + offline
+ ***************************************************/
+async function cargarDatos(){
+  try{
+    const urlCSV=await fetch('gary.dat',{cache:'no-store'}).then(r=>r.text()).then(t=>atob(t.trim()));
+    if(!urlCSV) throw new Error('MISSING_CSV_URL');
+    const res=await fetchCSV(urlCSV);
+    if(res.text===null){ el.etagInfo.textContent=lastETag?`ETag vigente: ${lastETag}`:''; return; }
+    const { headers, rows }=parseCSV(res.text);
+    resolveIndices(headers);
+    applyRows(headers,rows);
+    await dbSet('ultimoEstadoInfo',Array.from(ultimoEstadoInfo.entries()));
+    await dbSet('ultimoRegistroMap',Array.from(ultimoRegistroMap.entries()));
+    await dbSet('ultimaLineaProcesada',ultimaLineaProcesada);
+    lastETag=res.etag||lastETag; lastModified=res.lastModified||lastModified;
+    if(lastETag) await dbSet('lastETag',lastETag);
+    if(lastModified) await dbSet('lastModified',lastModified);
+    el.etagInfo.textContent=lastETag?`ETag: ${lastETag}`:(lastModified?`Modificado: ${lastModified}`:'');
+    render(); el.lastUpdate.textContent=new Date().toLocaleTimeString(); hideMsg();
+    backoffMs=0; el.estadoRed.textContent='ONLINE'; el.estadoRed.style.color='limegreen';
+  } catch(err){
+    console.error('Error cargarDatos:',err);
+    const cacheEstado=await dbGet('ultimoEstadoInfo');
+    const cacheUltimo=await dbGet('ultimoRegistroMap');
+    const cacheLinea=await dbGet('ultimaLineaProcesada');
+    const cacheETag=await dbGet('lastETag');
+    const cacheLM=await dbGet('lastModified');
+    if(cacheEstado&&cacheUltimo){
+      ultimoEstadoInfo.clear(); for(const [k,v] of cacheEstado) ultimoEstadoInfo.set(k,v);
+      ultimoRegistroMap.clear(); for(const [k,v] of cacheUltimo) ultimoRegistroMap.set(k,v);
+      ultimaLineaProcesada=cacheLinea||0; lastETag=cacheETag||lastETag; lastModified=cacheLM||lastModified;
+      render(); el.lastUpdate.textContent=new Date().toLocaleTimeString()+' (offline)'; showMsg('Mostrando datos desde caché (modo offline o error de red).'); 
+    } else { showMsg('No se pudo actualizar ni cargar caché. Verifique la conexión y el CSV.'); }
+    backoffMs=Math.min(60000, backoffMs?backoffMs*2:2000);
+    el.estadoRed.textContent='OFFLINE'; el.estadoRed.style.color='orange';
+  }
+}
+
+/***************************************************
+ * Inicialización
+ ***************************************************/
+async function init(){
+  try{
+    const cacheEstado=await dbGet('ultimoEstadoInfo');
+    const cacheUltimo=await dbGet('ultimoRegistroMap');
+    const cacheLinea=await dbGet('ultimaLineaProcesada');
+    const cacheETag=await dbGet('lastETag');
+    const cacheLM=await dbGet('lastModified');
+    if(cacheEstado&&cacheUltimo){ 
+      for(const [k,v] of cacheEstado) ultimoEstadoInfo.set(k,v);
+      for(const [k,v] of cacheUltimo) ultimoRegistroMap.set(k,v);
+      ultimaLineaProcesada=cacheLinea||0; lastETag=cacheETag||null; lastModified=cacheLM||null;
+      render(); el.lastUpdate.textContent=new Date().toLocaleTimeString()+' (desde caché)';
+    }
+  } catch(e){ console.warn('Sin cache inicial:',e); }
+
+  el.btnActualizar.addEventListener('click',()=>{cargarDatos();});
+  el.autoScroll.addEventListener('change',()=>{if(el.autoScroll.checked&&!rafId) autoScroll(); if(!el.autoScroll.checked&&rafId){cancelAnimationFrame(rafId); rafId=null;}});
+  el.modoOffline.addEventListener('change',()=>{if(!el.modoOffline.checked){ backoffMs=0; cargarDatos(); }});
+  el.freq.addEventListener('change',()=>{ restartTimer(); });
+
+  autoScroll(); await cargarDatos(); restartTimer();
+
+  window.addEventListener('online', ()=>{ if(!el.modoOffline.checked){ cargarDatos(); } });
+  window.addEventListener('offline', ()=>{ el.estadoRed.textContent='OFFLINE'; el.estadoRed.style.color='orange'; });
+}
+
+function restartTimer(){
+  if(timerId) clearInterval(timerId);
+  const base=parseInt(el.freq.value,10)||5000;
+  timerId=setInterval(()=>{ if(backoffMs&&backoffMs>base){ setTimeout(()=>cargarDatos(),backoffMs); } else { cargarDatos(); } }, base);
+}
+
+init();
 </script>
-
 </body>
 </html>
+
 
