@@ -48,6 +48,39 @@
 
   .notice { display:flex; align-items:center; gap:8px; margin:8px 0; font-size: 13px; }
   .hidden { display: none !important; }
+
+  /* Ajustes para pantallas pequeñas */
+  @media (max-width: 768px) {
+    header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 8px 12px;
+    }
+    header h1 {
+      font-size: 16px;
+      text-align: left;
+    }
+    .toolbar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+      padding: 8px;
+    }
+    .toolbar button, .toolbar select, .toolbar label {
+      font-size: 13px;
+      width: 100%;
+    }
+    table {
+      font-size: 12px;
+    }
+    thead th, tbody td {
+      padding: 6px;
+    }
+    tbody {
+      max-height: 300px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -288,28 +321,15 @@ async function init(){
     if(cacheEstado&&cacheUltimo){ 
       for(const [k,v] of cacheEstado) ultimoEstadoInfo.set(k,v);
       for(const [k,v] of cacheUltimo) ultimoRegistroMap.set(k,v);
-      ultimaLineaProcesada=cacheLinea||0; lastETag=cacheETag||null; lastModified=cacheLM||null;
-      render(); el.lastUpdate.textContent=new Date().toLocaleTimeString()+' (desde caché)';
+      ultimaLineaProcesada=cacheLinea||0; lastETag=cacheETag||lastETag; lastModified=cacheLM||lastModified;
+      render();
     }
-  } catch(e){ console.warn('Sin cache inicial:',e); }
-
-  el.btnActualizar.addEventListener('click',()=>{cargarDatos();});
-  el.autoScroll.addEventListener('change',()=>{if(el.autoScroll.checked&&!rafId) autoScroll(); if(!el.autoScroll.checked&&rafId){cancelAnimationFrame(rafId); rafId=null;}});
-  el.modoOffline.addEventListener('change',()=>{if(!el.modoOffline.checked){ backoffMs=0; cargarDatos(); }});
-  el.freq.addEventListener('change',()=>{ restartTimer(); });
-
-  autoScroll(); await cargarDatos(); restartTimer();
-
-  window.addEventListener('online', ()=>{ if(!el.modoOffline.checked){ cargarDatos(); } });
-  window.addEventListener('offline', ()=>{ el.estadoRed.textContent='OFFLINE'; el.estadoRed.style.color='orange'; });
+  } catch(e){ console.warn('No se cargó caché inicial',e); }
+  el.btnActualizar.addEventListener('click',()=>{ cargarDatos(); });
+  function scheduleNext(){ timerId=setTimeout(async()=>{ await cargarDatos(); scheduleNext(); }, parseInt(el.freq.value)+backoffMs); }
+  scheduleNext();
+  autoScroll();
 }
-
-function restartTimer(){
-  if(timerId) clearInterval(timerId);
-  const base=parseInt(el.freq.value,10)||5000;
-  timerId=setInterval(()=>{ if(backoffMs&&backoffMs>base){ setTimeout(()=>cargarDatos(),backoffMs); } else { cargarDatos(); } }, base);
-}
-
 init();
 </script>
 </body>
