@@ -761,16 +761,16 @@ el.freq.addEventListener('change', () => {
       render();
     }
     
-    // Iniciamos el scroll automático
+
     autoScrollFunc();
     
-    // Configuramos el intervalo de actualización
+   
     const freq = Number(el.freq.value);
     if (freq > 0) {
       timerId = setInterval(cargarDatos, freq);
     }
     
-    // Cargamos datos frescos
+    
     await cargarDatos();
     
   } catch (error) {
