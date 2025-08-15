@@ -15,6 +15,7 @@
     --ok-ink: #155724;
     --bad-bg: #f8d7da;
     --bad-ink: #721c24;
+    --blink-bg: #fff3cd;
   }
   * { box-sizing: border-box; }
   body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; color: var(--ink); }
@@ -23,6 +24,8 @@
   header h1 { margin: 0; font-size: 20px; letter-spacing: .5px; flex: 1; text-align: center; }
   header .firma { font-size: 12px; font-style: italic; white-space: nowrap; opacity: .9; }
   header .estadoRed { font-size: 12px; font-weight: bold; }
+  header .estadoRed.online { color: #10b981; }   /* verde suave */
+  header .estadoRed.offline { color: #f59e0b; }  /* ámbar */
 
   .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; padding: 10px; background: #fff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 64px; z-index: 9; }
   .toolbar button, .toolbar select, .toolbar label { font-size: 14px; }
@@ -32,8 +35,10 @@
   .muted { color: #6b7280; font-size: 12px; }
 
   .wrap { max-width: 1200px; margin: 0 auto; padding: 10px; }
-
-  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+  .contenedor-tablas { display: flex; gap: 20px; align-items: flex-start; }
+  table { border-collapse: collapse; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,.06); background: #fff; }
+  table#tablaEstacionamiento { width: 100%; }
+  table#tabla-vacios { width: 120px; }
   caption { font-weight: 600; padding: 8px; background: #fff; }
   thead th { position: sticky; top: calc(64px + 48px); background: var(--brand); color: var(--brand-ink); padding: 10px; text-align: center; }
   tbody { display: block; max-height: 520px; overflow: auto; }
@@ -41,104 +46,97 @@
   th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px; }
   tr.ocupado { background-color: var(--bad-bg); color: var(--bad-ink); font-weight: 600; }
   tr.vacio { background-color: var(--ok-bg); color: var(--ok-ink); }
-
   .status { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
   .status.ok { background: #dcfce7; }
   .status.bad { background: #fee2e2; }
-
   .notice { display:flex; align-items:center; gap:8px; margin:8px 0; font-size: 13px; }
   .hidden { display: none !important; }
 
-  /* Ajustes para pantallas pequeñas */
+  /* Animación de parpadeo */
+  @keyframes blink {
+    0% { background-color: var(--blink-bg); }
+    50% { background-color: inherit; }
+    100% { background-color: var(--blink-bg); }
+  }
+  .blink { animation: blink 1s ease 2; }
+
+  /* Tabla vacíos fondo verde */
+  table#tabla-vacios tbody tr { background-color: var(--ok-bg); color: var(--ok-ink); }
+
   @media (max-width: 768px) {
-    header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 6px;
-      padding: 8px 12px;
-    }
-    header h1 {
-      font-size: 16px;
-      text-align: left;
-      width: 100%;
-    }
-    header img {
-      height: 36px;
-    }
-    .toolbar {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 6px;
-      padding: 8px;
-    }
-    .toolbar button, .toolbar select, .toolbar label {
-      font-size: 13px;
-      width: 100%;
-    }
-    table {
-      font-size: 12px;
-    }
-    thead th, tbody td {
-      padding: 6px 4px;
-    }
-    th:nth-child(6), td:nth-child(6) { /* Oculta la columna "Último registro" en móvil */
-      display: none;
-    }
-    tbody {
-      max-height: 300px;
-    }
-    .status {
-      padding: 2px 6px;
-      font-size: 12px;
-    }
+    header { flex-direction: column; align-items: flex-start; gap: 6px; padding: 8px 12px; }
+    header h1 { font-size: 16px; text-align: left; width: 100%; }
+    header img { height: 36px; }
+    .toolbar { flex-direction: column; align-items: stretch; gap: 6px; padding: 8px; }
+    .toolbar button, .toolbar select, .toolbar label { font-size: 13px; width: 100%; }
+    table { font-size: 12px; }
+    thead th, tbody td { padding: 6px 4px; }
+    tbody { max-height: 300px; }
+    .status { padding: 2px 6px; font-size: 12px; }
+    .contenedor-tablas { flex-direction: column; }
+    table#tabla-vacios { width: 100%; max-height: 200px; }
   }
 </style>
 </head>
 <body>
 <header>
-  <img src="https://hjmintl.com/web/storage/configs/logo.png" alt="Logo">
-  <h1>HJM Cajas</h1>
+  <img src="https://hjmintl.com/web/storage/configs/logo.png" alt="Logo HJM" loading="lazy">
+  <h1>HJM Cajas y Equipo</h1>
   <div class="firma">By Santos LP</div>
-  <div class="estadoRed" id="estadoRed">ONLINE</div>
+  <div class="estadoRed" id="estadoRed" aria-live="polite">ONLINE</div>
 </header>
 
 <div class="toolbar">
-  <button class="btn" id="btnActualizar">Actualizar</button>
+  <button class="btn" id="btnActualizar" aria-label="Actualizar datos">Actualizar</button>
   <label><input type="checkbox" id="autoScroll" checked /> Scroll automático</label>
   <label><input type="checkbox" id="modoOffline" /> Modo offline</label>
-  <select id="freq">
+  <select id="freq" aria-label="Frecuencia de actualización">
     <option value="5000">Cada 5 s</option>
     <option value="10000">Cada 10 s</option>
     <option value="30000">Cada 30 s</option>
     <option value="60000">Cada 60 s</option>
   </select>
-  <span class="muted" id="etagInfo"></span>
+  <span class="muted" id="etagInfo" aria-live="polite"></span>
 </div>
 
 <div class="wrap">
-  <div class="notice" id="msg"></div>
+  <div class="notice" id="msg" role="status" aria-live="polite"></div>
 
-  <table id="tablaEstacionamiento">
-    <caption>Última actualización: <span id="lastUpdate">-</span></caption>
-    <thead>
-      <tr>
-        <th>Localización</th>
-        <th>Unidad</th>
-        <th>Estado</th>
-        <th>Equipos</th>
-        <th>Condición</th>
-        <th>Fecha de ingreso</th>
-        <th>Último registro</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div class="contenedor-tablas">
+    <!-- Tabla principal -->
+    <table id="tablaEstacionamiento" aria-label="Estado del estacionamiento">
+      <caption>Última actualización: <span id="lastUpdate">-</span></caption>
+      <thead>
+        <tr>
+          <th scope="col">Localización</th>
+          <th scope="col">Unidad</th>
+          <th scope="col">Estado</th>
+          <th scope="col">Equipos</th>
+          <th scope="col">Condición</th>
+          <th scope="col">Fecha de ingreso</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <!-- Tabla de vacíos -->
+    <table id="tabla-vacios" aria-label="Espacios vacíos">
+      <thead>
+        <tr><th scope="col">Vacíos</th></tr>
+      </thead>
+      <tbody id="cuerpo-vacios"></tbody>
+    </table>
+  </div>
 </div>
 
 <script>
-/***************************************************
- * Config + utilidades
- ***************************************************/
+// Constantes configurables
+const MAX_BACKOFF_MS = 30000;
+const INITIAL_BACKOFF_MS = 2000;
+const DB_NAME = 'hjm-parking';
+const DB_STORE = 'cache';
+
+// Lista de espacios (sin cambios)
 const listaEspacios = [
   "n01","n02","n03","n04","n05","n06","n07","n08","n09","n10",
   "n11","n12","n13","n14","n15","n16","n17","n18","n19","n20",
@@ -151,8 +149,10 @@ const listaEspacios = [
   "s41","s42","s43","s44","s45","s46"
 ];
 
+// Cache de elementos del DOM
 const el = {
   tbody: document.querySelector('#tablaEstacionamiento tbody'),
+  cuerpoVacios: document.getElementById('cuerpo-vacios'),
   btnActualizar: document.getElementById('btnActualizar'),
   autoScroll: document.getElementById('autoScroll'),
   modoOffline: document.getElementById('modoOffline'),
@@ -163,189 +163,628 @@ const el = {
   estadoRed: document.getElementById('estadoRed')
 };
 
+// Variables de estado
 let rafId = null;
 let userScrolling = false;
 let scrollTimeout = null;
 let timerId = null;
-
-// Estado en memoria
 const ultimoEstadoInfo = new Map();
 const trMap = new Map();
-const ultimoRegistroMap = new Map();
-
-// Control de ingestión incremental y condicional
 let ultimaLineaProcesada = 0;
 let lastETag = null;
 let lastModified = null;
 let backoffMs = 0;
-
-// IndexedDB
-const DB_NAME = 'hjm-parking';
-const DB_STORE = 'cache';
 let db = null;
+let isInitialLoad = true;
 
-function showMsg(text){ el.msg.classList.remove('hidden'); el.msg.textContent = text; }
-function hideMsg(){ el.msg.classList.add('hidden'); }
-
-async function openDB(){
-  return new Promise((resolve,reject)=>{
-    const req = indexedDB.open(DB_NAME,1);
-    req.onupgradeneeded=(e)=>{ if(!e.target.result.objectStoreNames.contains(DB_STORE)) e.target.result.createObjectStore(DB_STORE); };
-    req.onsuccess=()=>resolve(req.result);
-    req.onerror=()=>reject(req.error);
+/**
+ * Abre la conexión a IndexedDB
+ * @returns {Promise<IDBDatabase|null>}
+ */
+async function openDB() {
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open(DB_NAME, 1);
+      
+      request.onupgradeneeded = (event) => {
+        if (!event.target.result.objectStoreNames.contains(DB_STORE)) {
+          event.target.result.createObjectStore(DB_STORE);
+        }
+      };
+      
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => {
+        console.error('Error al abrir IndexedDB');
+        resolve(null);
+      };
+    } catch (error) {
+      console.error('Excepción al abrir IndexedDB:', error);
+      resolve(null);
+    }
   });
 }
-async function dbSet(key,value){ if(!db) db=await openDB(); return new Promise((res,rej)=>{ const tx=db.transaction(DB_STORE,'readwrite'); tx.objectStore(DB_STORE).put(value,key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
-async function dbGet(key){ if(!db) db=await openDB(); return new Promise((res,rej)=>{ const tx=db.transaction(DB_STORE,'readonly'); const req=tx.objectStore(DB_STORE).get(key); req.onsuccess=()=>res(req.result); req.onerror=()=>rej(req.error); }); }
 
-/***************************************************
- * Scroll automático
- ***************************************************/
-function autoScroll(){
-  if(!el.autoScroll.checked || userScrolling || el.tbody.scrollHeight<=el.tbody.clientHeight){ rafId=requestAnimationFrame(autoScroll); return; }
-  const step=Math.max(1,Math.floor(el.tbody.clientHeight*0.25));
-  if(el.tbody.scrollTop+el.tbody.clientHeight>=el.tbody.scrollHeight-2){ el.tbody.scrollTop=0; } 
-  else { el.tbody.scrollTop+=step; }
-  rafId=requestAnimationFrame(autoScroll);
-}
-el.tbody.addEventListener('scroll',()=>{ if(el.autoScroll.checked){ userScrolling=true; if(scrollTimeout) clearTimeout(scrollTimeout); scrollTimeout=setTimeout(()=>{userScrolling=false;},1500); }});
-
-/***************************************************
- * Fetch condicional con ETag/Last-Modified + offline
- ***************************************************/
-async function fetchCSV(url){
-  if(el.modoOffline.checked) throw new Error('FORCED_OFFLINE');
-  const headers={};
-  if(lastETag) headers['If-None-Match']=lastETag;
-  if(lastModified) headers['If-Modified-Since']=lastModified;
-  const resp=await fetch(url,{headers,cache:'no-store'});
-  if(resp.status===304) return { text:null, etag:lastETag, lastModified };
-  if(!resp.ok) throw new Error('HTTP_'+resp.status);
-  const etag=resp.headers.get('ETag');
-  const lm=resp.headers.get('Last-Modified');
-  const text=await resp.text();
-  return { text, etag, lastModified: lm };
+/**
+ * Guarda datos en IndexedDB
+ * @param {string} key - Clave de almacenamiento
+ * @param {any} value - Valor a guardar
+ * @returns {Promise<void>}
+ */
+async function dbSet(key, value) {
+  if (!db) db = await openDB();
+  if (!db) return;
+  
+  return new Promise((resolve, reject) => {
+    try {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).put(value, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    } catch (error) {
+      console.error('Error en dbSet:', error);
+      reject(error);
+    }
+  });
 }
 
-function parseCSV(text){ 
-  const lines=text.split(/\r?\n/).filter(Boolean);
-  if(lines.length===0) return { headers:[], rows:[] };
-  const headers=lines[0].split(',').map(h=>h.trim());
-  const rows=[];
-  for(let i=1;i<lines.length;i++){ const cols=lines[i].split(','); while(cols.length<headers.length) cols.push(''); rows.push(cols.map(c=>c.trim())); }
+/**
+ * Recupera datos de IndexedDB
+ * @param {string} key - Clave a recuperar
+ * @returns {Promise<any|null>}
+ */
+async function dbGet(key) {
+  if (!db) db = await openDB();
+  if (!db) return null;
+  
+  return new Promise((resolve, reject) => {
+    try {
+      const tx = db.transaction(DB_STORE, 'readonly');
+      const req = tx.objectStore(DB_STORE).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    } catch (error) {
+      console.error('Error en dbGet:', error);
+      reject(error);
+    }
+  });
+}
+
+/**
+ * Muestra un mensaje al usuario
+ * @param {string} text - Texto del mensaje
+ * @param {string} [type='info'] - Tipo de mensaje (info, error, warning)
+ */
+function showMsg(text, type = 'info') {
+  el.msg.textContent = text;
+  el.msg.classList.remove('hidden');
+  
+  // Reset clases de tipo
+  el.msg.classList.remove('msg-error', 'msg-warning', 'msg-info');
+  
+  // Añadir clase según tipo
+  if (type === 'error') {
+    el.msg.classList.add('msg-error');
+  } else if (type === 'warning') {
+    el.msg.classList.add('msg-warning');
+  } else {
+    el.msg.classList.add('msg-info');
+  }
+}
+
+function hideMsg() {
+  el.msg.classList.add('hidden');
+}
+
+/**
+ * Actualiza el indicador de estado de red
+ * @param {'ONLINE'|'OFFLINE'} status - Estado de la conexión
+ */
+function setEstadoRed(status) {
+  el.estadoRed.textContent = status;
+  
+  if (status === 'ONLINE') {
+    el.estadoRed.classList.add('online');
+    el.estadoRed.classList.remove('offline');
+  } else {
+    el.estadoRed.classList.add('offline');
+    el.estadoRed.classList.remove('online');
+  }
+}
+
+/**
+ * Maneja los cambios en la conectividad del navegador
+ */
+function actualizarIndicadorPorNavegador() {
+  if (el.modoOffline.checked) {
+    setEstadoRed('OFFLINE');
+  } else {
+    setEstadoRed(navigator.onLine ? 'ONLINE' : 'OFFLINE');
+  }
+}
+
+// Event listeners para cambios de conectividad
+window.addEventListener('online', actualizarIndicadorPorNavegador);
+window.addEventListener('offline', actualizarIndicadorPorNavegador);
+
+/**
+ * Función de scroll automático para ambas tablas
+ */
+function autoScrollFunc() {
+  if (!el.autoScroll.checked || userScrolling) {
+    rafId = requestAnimationFrame(autoScrollFunc);
+    return;
+  }
+
+  // Scroll para tabla principal
+  if (el.tbody.scrollHeight > el.tbody.clientHeight) {
+    const step = Math.max(1, Math.floor(el.tbody.clientHeight * 0.25));
+    if (el.tbody.scrollTop + el.tbody.clientHeight >= el.tbody.scrollHeight - 2) {
+      el.tbody.scrollTop = 0;
+    } else {
+      el.tbody.scrollTop += step;
+    }
+  }
+
+  // Scroll para tabla de vacíos
+  if (el.cuerpoVacios.scrollHeight > el.cuerpoVacios.clientHeight) {
+    const stepVacios = Math.max(1, Math.floor(el.cuerpoVacios.clientHeight * 0.25));
+    if (el.cuerpoVacios.scrollTop + el.cuerpoVacios.clientHeight >= el.cuerpoVacios.scrollHeight - 2) {
+      el.cuerpoVacios.scrollTop = 0;
+    } else {
+      el.cuerpoVacios.scrollTop += stepVacios;
+    }
+  }
+
+  rafId = requestAnimationFrame(autoScrollFunc);
+}
+
+// Event listeners para detectar scroll manual
+el.tbody.addEventListener('scroll', handleManualScroll);
+el.cuerpoVacios.addEventListener('scroll', handleManualScroll);
+
+function handleManualScroll() {
+  if (el.autoScroll.checked) {
+    userScrolling = true;
+    if (scrollTimeout) clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      userScrolling = false;
+    }, 1500);
+  }
+}
+
+/**
+ * Actualiza la tabla de espacios vacíos
+ * @param {string[]} [updated=[]] - Lista de espacios actualizados
+ */
+function actualizarVacios(updated = []) {
+  // Usamos DocumentFragment para mejor performance
+  const fragment = document.createDocumentFragment();
+  
+  listaEspacios.forEach(espacio => {
+    const info = ultimoEstadoInfo.get(espacio) || { estado: 'salida' };
+    
+    if (info.estado !== 'entrada') {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.textContent = espacio;
+      
+      if (updated.includes(espacio)) {
+        tr.classList.add('blink');
+        // Eliminamos la clase después de la animación
+        setTimeout(() => tr.classList.remove('blink'), 2000);
+      }
+      
+      tr.appendChild(td);
+      fragment.appendChild(tr);
+    }
+  });
+  
+  // Limpiamos y añadimos el nuevo contenido
+  el.cuerpoVacios.innerHTML = '';
+  el.cuerpoVacios.appendChild(fragment);
+}
+
+/**
+ * Renderiza la tabla principal con los espacios ocupados
+ */
+function render() {
+  const updated = [];
+  const fragment = document.createDocumentFragment();
+  
+  // Primero eliminamos los TR que ya no están ocupados
+  trMap.forEach((tr, espacio) => {
+    const info = ultimoEstadoInfo.get(espacio) || { estado: 'salida' };
+    if (info.estado !== 'entrada') {
+      tr.remove();
+      trMap.delete(espacio);
+      updated.push(espacio);
+    }
+  });
+  
+  // Luego añadimos/actualizamos los ocupados
+  listaEspacios.forEach(espacio => {
+    const info = ultimoEstadoInfo.get(espacio) || {
+      estado: 'salida',
+      equipos: '',
+      condicion: '',
+      unidad: '',
+      fechaIngreso: null
+    };
+    
+    if (info.estado === 'entrada') {
+      let tr = trMap.get(espacio);
+      const isNew = !tr;
+      
+      if (isNew) {
+        tr = document.createElement('tr');
+        trMap.set(espacio, tr);
+        updated.push(espacio);
+      }
+      
+      tr.className = 'ocupado';
+      const fechaTxt = info.fechaIngreso ? info.fechaIngreso.toLocaleString() : '';
+      
+      tr.innerHTML = `
+        <td>${espacio}</td>
+        <td>${info.unidad || ''}</td>
+        <td><span class="status bad">Ocupado</span></td>
+        <td>${info.equipos || ''}</td>
+        <td>${info.condicion || ''}</td>
+        <td>${fechaTxt}</td>
+      `;
+      
+      if (isNew) {
+        fragment.appendChild(tr);
+      }
+      
+      if (updated.includes(espacio)) {
+        tr.classList.add('blink');
+        setTimeout(() => tr.classList.remove('blink'), 2000);
+      }
+    }
+  });
+  
+  // Añadimos los nuevos elementos al tbody
+  el.tbody.appendChild(fragment);
+  
+  // Actualizamos la tabla de vacíos
+  actualizarVacios(updated);
+  
+  // Actualizamos la marca de tiempo
+  el.lastUpdate.textContent = new Date().toLocaleTimeString();
+}
+
+/**
+ * Obtiene el archivo CSV con manejo robusto de errores
+ * @param {string} url - URL del CSV
+ * @returns {Promise<{text: string|null, etag: string|null, lastModified: string|null}>}
+ */
+async function fetchCSV(url) {
+  // Verificación de URL válida
+  if (!url || typeof url !== 'string' || !url.startsWith('http')) {
+    throw new Error('URL no válida');
+  }
+  
+  if (el.modoOffline.checked) {
+    setEstadoRed('OFFLINE');
+    throw new Error('FORCED_OFFLINE');
+  }
+  
+  const headers = {};
+  if (lastETag) headers['If-None-Match'] = lastETag;
+  if (lastModified) headers['If-Modified-Since'] = lastModified;
+  
+  let attempts = 0;
+  const maxAttempts = 5;
+  
+  while (attempts < maxAttempts) {
+    try {
+      const response = await fetch(url, {
+        headers,
+        cache: 'no-store',
+        referrerPolicy: 'no-referrer'
+      });
+      
+      if (response.status === 304) {
+        setEstadoRed('ONLINE');
+        return { text: null, etag: lastETag, lastModified };
+      }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const etag = response.headers.get('ETag');
+      const lm = response.headers.get('Last-Modified');
+      const text = await response.text();
+      
+      // Validación básica del contenido
+      if (typeof text !== 'string' || text.length === 0) {
+        throw new Error('Respuesta vacía o no válida');
+      }
+      
+      backoffMs = 0; // Reset backoff
+      setEstadoRed('ONLINE');
+      return { text, etag, lastModified: lm };
+      
+    } catch (error) {
+      attempts++;
+      console.error(`Intento ${attempts} fallido:`, error);
+      setEstadoRed('OFFLINE');
+      
+      if (attempts >= maxAttempts) {
+        throw error;
+      }
+      
+      showMsg(`Error de conexión (intento ${attempts}/${maxAttempts})...`, 'warning');
+      backoffMs = Math.min(backoffMs + INITIAL_BACKOFF_MS, MAX_BACKOFF_MS);
+      await new Promise(resolve => setTimeout(resolve, backoffMs));
+    }
+  }
+  
+  throw new Error('No se pudo obtener el CSV después de varios intentos');
+}
+
+/**
+ * Parsea el contenido CSV con validación
+ * @param {string} text - Contenido CSV
+ * @returns {{headers: string[], rows: string[][]}}
+ */
+function parseCSV(text) {
+  if (typeof text !== 'string' || text.trim().length === 0) {
+    throw new Error('Datos CSV no válidos');
+  }
+  
+  const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+  
+  if (lines.length === 0) {
+    return { headers: [], rows: [] };
+  }
+  
+  const headers = lines[0].split(',').map(h => h.trim());
+  const rows = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',');
+    // Aseguramos que todas las filas tengan el mismo número de columnas que los headers
+    while (cols.length < headers.length) cols.push('');
+    rows.push(cols.map(c => c.trim()));
+  }
+  
   return { headers, rows };
 }
 
-function resolveIndices(headers){
-  const lower=headers.map(h=>h.toLowerCase());
-  const idxFecha=lower.findIndex(h=>h.includes('fecha y hora'));
-  const idxEstado=lower.findIndex(h=>h==='estado');
-  const idxLocal=lower.findIndex(h=>h.includes('localizaci'));
-  const idxEquip=lower.findIndex(h=>h.includes('equipos'));
-  const idxCond=lower.findIndex(h=>h==='condición'||h==='condicion');
-  const idxUnidad=lower.findIndex(h=>h.includes('unidad'));
-  if([idxFecha,idxEstado,idxLocal,idxEquip,idxCond].some(i=>i===-1)) throw new Error('SCHEMA_MISMATCH');
+/**
+ * Obtiene los índices de las columnas necesarias
+ * @param {string[]} headers - Encabezados del CSV
+ * @returns {{idxFecha: number, idxEstado: number, idxLocal: number, idxEquip: number, idxCond: number, idxUnidad: number}}
+ */
+function resolveIndices(headers) {
+  const lowerHeaders = headers.map(h => h.toLowerCase());
+  
+  const idxFecha = lowerHeaders.findIndex(h => 
+    h.includes('fecha') && h.includes('hora')
+  );
+  
+  const idxEstado = lowerHeaders.findIndex(h => h === 'estado');
+  const idxLocal = lowerHeaders.findIndex(h => h.includes('localizaci'));
+  const idxEquip = lowerHeaders.findIndex(h => h.includes('equipos'));
+  const idxCond = lowerHeaders.findIndex(h => 
+    h === 'condición' || h === 'condicion'
+  );
+  
+  const idxUnidad = lowerHeaders.findIndex(h => h.includes('unidad'));
+  
+  // Verificamos que los índices requeridos existan
+  const requiredIndices = [idxFecha, idxEstado, idxLocal];
+  if (requiredIndices.some(idx => idx === -1)) {
+    throw new Error('El formato del CSV no coincide con lo esperado');
+  }
+  
   return { idxFecha, idxEstado, idxLocal, idxEquip, idxCond, idxUnidad };
 }
 
-function applyRows(headers,rows){
-  const { idxFecha,idxEstado,idxLocal,idxEquip,idxCond,idxUnidad }=resolveIndices(headers);
-  for(let i=Math.max(0,ultimaLineaProcesada);i<rows.length;i++){
-    const row=rows[i];
-    const loc=(row[idxLocal]||'').trim();
-    const estado=(row[idxEstado]||'').trim().toLowerCase();
-    const equipos=(row[idxEquip]||'').trim();
-    const condicion=(row[idxCond]||'').trim();
-    const unidad=(row[idxUnidad]||'').trim();
-    const fecha=new Date((row[idxFecha]||'').trim());
-    if(!loc||Number.isNaN(fecha.getTime())) continue;
-    ultimoEstadoInfo.set(loc,{estado,equipos,condicion,unidad,fechaIngreso:fecha});
-    if(estado==='entrada') ultimoRegistroMap.set(loc,`${equipos} | ${condicion} | ${fecha.toLocaleString()}`);
+/**
+ * Procesa las filas del CSV y actualiza el estado
+ * @param {string[]} headers - Encabezados del CSV
+ * @param {string[][]} rows - Filas de datos
+ */
+function applyRows(headers, rows) {
+  const { idxFecha, idxEstado, idxLocal, idxEquip, idxCond, idxUnidad } = resolveIndices(headers);
+  
+  for (let i = Math.max(0, ultimaLineaProcesada); i < rows.length; i++) {
+    const row = rows[i];
+    
+    // Validación básica de fila
+    if (!Array.isArray(row) || row.length === 0) continue;
+    
+    const loc = (row[idxLocal] || '').trim();
+    const estado = (row[idxEstado] || '').trim().toLowerCase();
+    const equipos = (row[idxEquip] || '').trim();
+    const condicion = (row[idxCond] || '').trim();
+    const unidad = (row[idxUnidad] || '').trim();
+    
+    // Parseo seguro de fecha
+    let fecha;
+    try {
+      fecha = new Date((row[idxFecha] || '').trim());
+      if (isNaN(fecha.getTime())) fecha = null;
+    } catch (e) {
+      fecha = null;
+    }
+    
+    if (!loc) continue;
+    
+    // Actualizamos el mapa de estado
+    ultimoEstadoInfo.set(loc, {
+      estado,
+      equipos,
+      condicion,
+      unidad,
+      fechaIngreso: fecha
+    });
   }
-  ultimaLineaProcesada=rows.length;
+  
+  ultimaLineaProcesada = rows.length;
 }
 
-function render(){
-  listaEspacios.forEach(espacio=>{
-    const info=ultimoEstadoInfo.get(espacio)||{estado:'salida',equipos:'',condicion:'',unidad:'',fechaIngreso:null};
-    const ocupado=info.estado==='entrada';
-    let tr=trMap.get(espacio);
-    if(!tr){ tr=document.createElement('tr'); trMap.set(espacio,tr); el.tbody.appendChild(tr); }
-    const cls=ocupado?'ocupado':'vacio'; if(tr.className!==cls) tr.className=cls;
-    const fechaTxt=(ocupado&&info.fechaIngreso)?info.fechaIngreso.toLocaleString():'';
-    const ultimoTxt=ultimoRegistroMap.get(espacio)||'';
-    tr.innerHTML=`<td>${espacio}</td>
-      <td>${info.unidad||''}</td>
-      <td><span class="status ${ocupado?'bad':'ok'}">${ocupado?'Ocupado':'Vacío'}</span></td>
-      <td>${ocupado?(info.equipos||''):""}</td>
-      <td>${ocupado?(info.condicion||''):""}</td>
-      <td>${fechaTxt}</td>
-      <td>${ultimoTxt}</td>`;
-  });
-}
-
-/***************************************************
- * Carga datos + backoff + cache + offline
- ***************************************************/
-async function cargarDatos(){
-  try{
-    const urlCSV=await fetch('gary.dat',{cache:'no-store'}).then(r=>r.text()).then(t=>atob(t.trim()));
-    if(!urlCSV) throw new Error('MISSING_CSV_URL');
-    const res=await fetchCSV(urlCSV);
-    if(res.text===null){ el.etagInfo.textContent=lastETag?`ETag vigente: ${lastETag}`:''; return; }
-    const { headers, rows }=parseCSV(res.text);
-    resolveIndices(headers);
-    applyRows(headers,rows);
-    await dbSet('ultimoEstadoInfo',Array.from(ultimoEstadoInfo.entries()));
-    await dbSet('ultimoRegistroMap',Array.from(ultimoRegistroMap.entries()));
-    await dbSet('ultimaLineaProcesada',ultimaLineaProcesada);
-    lastETag=res.etag||lastETag; lastModified=res.lastModified||lastModified;
-    if(lastETag) await dbSet('lastETag',lastETag);
-    if(lastModified) await dbSet('lastModified',lastModified);
-    el.etagInfo.textContent=lastETag?`ETag: ${lastETag}`:(lastModified?`Modificado: ${lastModified}`:'');
-    render(); el.lastUpdate.textContent=new Date().toLocaleTimeString(); hideMsg();
-    backoffMs=0; el.estadoRed.textContent='ONLINE'; el.estadoRed.style.color='limegreen';
-  } catch(err){
-    console.error('Error cargarDatos:',err);
-    const cacheEstado=await dbGet('ultimoEstadoInfo');
-    const cacheUltimo=await dbGet('ultimoRegistroMap');
-    const cacheLinea=await dbGet('ultimaLineaProcesada');
-    const cacheETag=await dbGet('lastETag');
-    const cacheLM=await dbGet('lastModified');
-    if(cacheEstado&&cacheUltimo){
-      ultimoEstadoInfo.clear(); for(const [k,v] of cacheEstado) ultimoEstadoInfo.set(k,v);
-      ultimoRegistroMap.clear(); for(const [k,v] of cacheUltimo) ultimoRegistroMap.set(k,v);
-      ultimaLineaProcesada=cacheLinea||0; lastETag=cacheETag||lastETag; lastModified=cacheLM||lastModified;
-      render(); el.lastUpdate.textContent=new Date().toLocaleTimeString()+' (offline)'; showMsg('Mostrando datos desde caché (modo offline o error de red).'); 
-    } else { showMsg('No se pudo actualizar ni cargar caché. Verifique la conexión y el CSV.'); }
-    backoffMs=Math.min(60000, backoffMs?backoffMs*2:2000);
-    el.estadoRed.textContent='OFFLINE'; el.estadoRed.style.color='orange';
+/**
+ * Carga los datos principales del sistema
+ */
+async function cargarDatos() {
+  try {
+    if (isInitialLoad) {
+      showMsg('Cargando datos iniciales...', 'info');
+    }
+    
+    // Obtenemos la URL del CSV (manteniendo tu método original)
+    const urlCSV = await fetch('gary.dat', { cache: 'no-store' })
+      .then(response => {
+        if (!response.ok) throw new Error('No se pudo obtener gary.dat');
+        return response.text();
+      })
+      .then(text => {
+        const trimmed = text.trim();
+        if (!trimmed) throw new Error('Contenido de gary.dat vacío');
+        return atob(trimmed);
+      })
+      .catch(error => {
+        console.error('Error al obtener gary.dat:', error);
+        throw new Error('No se pudo obtener la URL del CSV');
+      });
+    
+    if (!urlCSV) {
+      throw new Error('URL del CSV no disponible');
+    }
+    
+    const result = await fetchCSV(urlCSV);
+    
+    if (result.text === null) {
+      // No hay cambios (304 Not Modified)
+      el.etagInfo.textContent = lastETag ? `ETag vigente: ${lastETag}` : '';
+      el.lastUpdate.textContent = new Date().toLocaleTimeString();
+      hideMsg();
+      return;
+    }
+    
+    const { headers, rows } = parseCSV(result.text);
+    resolveIndices(headers); // Valida los headers
+    applyRows(headers, rows);
+    
+    // Guardamos en caché
+    try {
+      await dbSet('ultimoEstadoInfo', Array.from(ultimoEstadoInfo.entries()));
+      await dbSet('ultimaLineaProcesada', ultimaLineaProcesada);
+    } catch (error) {
+      console.error('Error al guardar en caché:', error);
+    }
+    
+    // Actualizamos metadatos
+    lastETag = result.etag || lastETag;
+    lastModified = result.lastModified || lastModified;
+    el.etagInfo.textContent = lastETag ? `ETag: ${lastETag}` : '';
+    
+    // Renderizamos
+    render();
+    hideMsg();
+    
+    if (isInitialLoad) {
+      isInitialLoad = false;
+      showMsg('Datos cargados correctamente', 'info');
+      setTimeout(hideMsg, 3000);
+    }
+    
+  } catch (error) {
+    setEstadoRed('OFFLINE');
+    
+    if (error.message === 'FORCED_OFFLINE') {
+      showMsg('Modo offline activado', 'info');
+    } else {
+      showMsg(`Error: ${error.message}`, 'error');
+    }
+    
+    console.error('Error en cargarDatos:', error);
+    
+    // Intentamos usar datos cacheados si es el primer intento
+    if (isInitialLoad) {
+      try {
+        const stored = await dbGet('ultimoEstadoInfo');
+        if (stored) {
+          ultimoEstadoInfo.clear();
+          stored.forEach(([k, v]) => ultimoEstadoInfo.set(k, v));
+          const ultimaLinea = await dbGet('ultimaLineaProcesada');
+          ultimaLineaProcesada = ultimaLinea || 0;
+          render();
+          showMsg('Usando datos cacheados', 'warning');
+        }
+      } catch (cacheError) {
+        console.error('Error al cargar caché:', cacheError);
+      }
+    }
   }
 }
 
-/***************************************************
- * Inicialización
- ***************************************************/
-async function init(){
-  try{
-    const cacheEstado=await dbGet('ultimoEstadoInfo');
-    const cacheUltimo=await dbGet('ultimoRegistroMap');
-    const cacheLinea=await dbGet('ultimaLineaProcesada');
-    const cacheETag=await dbGet('lastETag');
-    const cacheLM=await dbGet('lastModified');
-    if(cacheEstado&&cacheUltimo){ 
-      for(const [k,v] of cacheEstado) ultimoEstadoInfo.set(k,v);
-      for(const [k,v] of cacheUltimo) ultimoRegistroMap.set(k,v);
-      ultimaLineaProcesada=cacheLinea||0; lastETag=cacheETag||lastETag; lastModified=cacheLM||lastModified;
+// Event listeners
+el.btnActualizar.addEventListener('click', () => {
+  showMsg('Actualizando datos...', 'info');
+  cargarDatos();
+});
+
+el.modoOffline.addEventListener('change', () => {
+  actualizarIndicadorPorNavegador();
+  if (el.modoOffline.checked) {
+    showMsg('Modo offline activado', 'info');
+  } else {
+    showMsg('Modo online, actualizando datos...', 'info');
+    cargarDatos();
+  }
+});
+
+el.freq.addEventListener('change', () => {
+  if (timerId) clearInterval(timerId);
+  const freq = Number(el.freq.value);
+  if (freq > 0) {
+    timerId = setInterval(cargarDatos, freq);
+  }
+});
+
+// Inicialización
+(async () => {
+  try {
+    // Cargamos datos cacheados primero para una respuesta rápida
+    const stored = await dbGet('ultimoEstadoInfo');
+    if (stored) {
+      ultimoEstadoInfo.clear();
+      stored.forEach(([k, v]) => ultimoEstadoInfo.set(k, v));
+      const ultimaLinea = await dbGet('ultimaLineaProcesada');
+      ultimaLineaProcesada = ultimaLinea || 0;
       render();
     }
-  } catch(e){ console.warn('No se cargó caché inicial',e); }
-  el.btnActualizar.addEventListener('click',()=>{ cargarDatos(); });
-  function scheduleNext(){ timerId=setTimeout(async()=>{ await cargarDatos(); scheduleNext(); }, parseInt(el.freq.value)+backoffMs); }
-  scheduleNext();
-  autoScroll();
-}
-init();
+    
+    // Iniciamos el scroll automático
+    autoScrollFunc();
+    
+    // Configuramos el intervalo de actualización
+    const freq = Number(el.freq.value);
+    if (freq > 0) {
+      timerId = setInterval(cargarDatos, freq);
+    }
+    
+    // Cargamos datos frescos
+    await cargarDatos();
+    
+  } catch (error) {
+    console.error('Error en inicialización:', error);
+    showMsg('Error al inicializar la aplicación', 'error');
+  }
+})();
+
+// Limpieza al salir
+window.addEventListener('beforeunload', () => {
+  if (rafId) cancelAnimationFrame(rafId);
+  if (timerId) clearInterval(timerId);
+  if (scrollTimeout) clearTimeout(scrollTimeout);
+});
 </script>
 </body>
 </html>
