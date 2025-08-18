@@ -78,6 +78,27 @@
   }
   .blink { animation: blink 1s ease 2; }
   table#tabla-vacios tbody tr { background-color: var(--ok-bg); color: var(--ok-ink); }
+  
+  /* Estilos para el botón de borrar caché */
+  .btn-cache {
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+    color: var(--brand);
+    transition: transform .05s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-cache:hover {
+    background: rgba(0,0,0,0.05);
+  }
+  .btn-cache:active {
+    transform: translateY(1px);
+  }
+  
   @media (max-width: 768px) {
     header { flex-direction: column; align-items: flex-start; gap: 6px; padding: 8px 12px; }
     header h1 { font-size: 16px; text-align: left; width: 100%; }
@@ -128,6 +149,11 @@
     <option value="30000">Cada 30 s</option>
     <option value="60000">Cada 60 s</option>
   </select>
+  <button class="btn-cache" id="btnClearCache" aria-label="Borrar caché" title="Borrar caché">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </svg>
+  </button>
   <span class="muted" id="etagInfo" aria-live="polite"></span>
 </div>
 
@@ -185,7 +211,8 @@ const el = {
   etagInfo: document.getElementById('etagInfo'),
   estadoRed: document.getElementById('estadoRed'),
   contadorVacios: document.getElementById('contadorVacios'),
-  contadorOcupados: document.getElementById('contadorOcupados')
+  contadorOcupados: document.getElementById('contadorOcupados'),
+  btnClearCache: document.getElementById('btnClearCache')
 };
 let rafId = null;
 let userScrolling = false;
@@ -237,6 +264,42 @@ async function dbGet(key) {
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
+}
+
+async function clearCache() {
+  const password = prompt('Ingrese la contraseña para borrar el caché:');
+ 
+ const correctPassword = 'U29wb3J0ZTk5';
+  
+  if (!password || btoa(password) !== correctPassword) {
+    showMsg('Contraseña incorrecta', 'error');
+    return;
+  }
+
+  try {
+    if (!db) db = await openDB();
+    if (db) {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).clear();
+      await new Promise((resolve, reject) => {
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+    
+    ultimoEstadoInfo.clear();
+    trMap.clear();
+    ultimaLineaProcesada = 0;
+    el.tbody.innerHTML = '';
+    el.cuerpoVacios.innerHTML = '';
+    el.contadorOcupados.textContent = '0';
+    el.contadorVacios.textContent = '0';
+    
+    showMsg('Caché borrado correctamente', 'info');
+    setTimeout(hideMsg, 3000);
+  } catch (error) {
+    showMsg('Error al borrar el caché', 'error');
+  }
 }
 
 function showMsg(text, type = 'info') {
@@ -546,6 +609,8 @@ el.freq.addEventListener('change', () => {
   const freq = Number(el.freq.value);
   if (freq > 0) timerId = setInterval(cargarDatos, freq);
 });
+
+el.btnClearCache.addEventListener('click', clearCache);
 
 (async () => {
   try {
