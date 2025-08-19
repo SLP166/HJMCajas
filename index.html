@@ -99,23 +99,154 @@
     transform: translateY(1px);
   }
   
+  /* Media queries mejoradas para móviles */
   @media (max-width: 768px) {
-    header { flex-direction: column; align-items: flex-start; gap: 6px; padding: 8px 12px; }
-    header h1 { font-size: 16px; text-align: left; width: 100%; }
-    header img { height: 36px; }
-    .toolbar { flex-direction: column; align-items: stretch; gap: 6px; padding: 8px; }
-    .toolbar button, .toolbar select, .toolbar label { font-size: 13px; width: 100%; }
-    .contador {
-      width: 100%;
-      justify-content: center;
+    header { 
+      flex-direction: row; 
+      align-items: center; 
+      gap: 8px; 
+      padding: 8px 12px; 
+      flex-wrap: wrap;
+    }
+    header h1 { 
+      font-size: 16px; 
+      text-align: center; 
+      width: auto;
+      order: 2;
+      flex: 100%;
+      margin-top: 5px;
+    }
+    header img { 
+      height: 36px; 
+      order: 1;
+    }
+    header .firma { 
+      order: 3;
+      margin-left: auto;
+    }
+    header .estadoRed {
+      order: 4;
+    }
+    
+    .toolbar { 
+      flex-direction: row; 
+      align-items: center; 
+      gap: 8px; 
+      padding: 8px;
+      flex-wrap: wrap;
+      justify-content: space-around;
+    }
+    .toolbar > * {
+      flex: 1 1 45%;
+      min-width: 0;
       margin: 2px 0;
     }
-    table { font-size: 12px; }
-    thead th, tbody td { padding: 6px 4px; }
-    tbody { max-height: 300px; }
-    .status { padding: 2px 6px; font-size: 12px; }
-    .contenedor-tablas { flex-direction: column; }
-    table#tabla-vacios { width: 100%; max-height: 200px; }
+    .toolbar button, .toolbar select, .toolbar label { 
+      font-size: 12px; 
+      width: 100%; 
+    }
+    .contador {
+      width: auto;
+      justify-content: center;
+      margin: 0 2px;
+      font-size: 12px;
+      padding: 4px 8px;
+    }
+    .contador svg {
+      width: 14px;
+      height: 14px;
+    }
+    .toolbar label {
+      white-space: nowrap;
+      font-size: 12px;
+    }
+    
+    .wrap {
+      padding: 5px;
+    }
+    
+    .contenedor-tablas { 
+      flex-direction: column; 
+      gap: 10px;
+    }
+    
+    table { 
+      font-size: 11px; 
+      width: 100%;
+    }
+    table#tabla-vacios { 
+      width: 100%; 
+      max-height: 150px;
+    }
+    
+    thead th, tbody td { 
+      padding: 6px 3px; 
+      word-break: break-word;
+    }
+    
+    th:nth-child(1), td:nth-child(1) { width: 15%; } /* Localización */
+    th:nth-child(2), td:nth-child(2) { width: 15%; } /* Unidad */
+    th:nth-child(3), td:nth-child(3) { width: 15%; } /* Estado */
+    th:nth-child(4), td:nth-child(4) { width: 20%; } /* Equipos */
+    th:nth-child(5), td:nth-child(5) { width: 15%; } /* Condición */
+    th:nth-child(6), td:nth-child(6) { width: 20%; } /* Fecha */
+    
+    tbody { 
+      max-height: 300px; 
+    }
+    .status { 
+      padding: 2px 5px; 
+      font-size: 10px; 
+    }
+    
+    caption {
+      font-size: 13px;
+      padding: 6px;
+    }
+    
+    .muted {
+      display: none; /* Ocultar información ETag en móviles para ahorrar espacio */
+    }
+    
+    .btn-cache {
+      padding: 6px;
+    }
+    
+    /* Ajustar el texto de fecha para móviles */
+    td:nth-child(6) {
+      font-size: 10px;
+    }
+  }
+  
+  /* Ajustes adicionales para pantallas muy pequeñas */
+  @media (max-width: 480px) {
+    header h1 {
+      font-size: 14px;
+    }
+    
+    .toolbar > * {
+      flex: 1 1 100%;
+    }
+    
+    th:nth-child(1), td:nth-child(1) { width: 12%; } /* Localización */
+    th:nth-child(2), td:nth-child(2) { width: 13%; } /* Unidad */
+    th:nth-child(3), td:nth-child(3) { width: 15%; } /* Estado */
+    th:nth-child(4), td:nth-child(4) { width: 20%; } /* Equipos */
+    th:nth-child(5), td:nth-child(5) { width: 15%; } /* Condición */
+    th:nth-child(6), td:nth-child(6) { width: 25%; } /* Fecha */
+    
+    thead th, tbody td {
+      padding: 4px 2px;
+      font-size: 10px;
+    }
+    
+    .status {
+      font-size: 9px;
+    }
+    
+    td:nth-child(6) {
+      font-size: 9px;
+    }
   }
 </style>
 </head>
